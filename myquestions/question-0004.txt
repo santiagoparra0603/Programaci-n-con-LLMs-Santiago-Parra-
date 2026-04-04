@@ -1,1 +1,59 @@
+Enunciado
+En una empresa de telecomunicaciones, se registran métricas diarias de tráfico de red por torre: volumen de datos transmitidos (GB), latencia promedio (ms), número de usuarios conectados, tasa de paquetes perdidos (%) y tiempo de actividad (horas). El equipo de operaciones necesita predecir si una torre presentará congestión crítica al día siguiente (variable binaria), pero el dataset histórico tiene un problema: las clases están muy desbalanceadas (solo el 8-12% de registros son congestión crítica) y además hay valores nulos.
+Se requiere implementar una función que construya un pipeline de clasificación completo que maneje el desbalanceo usando pesos de clase calculados manualmente con compute_class_weight, aplique validación cruzada estratificada, y reporte métricas orientadas a clases desbalanceadas: precision, recall, F1 y ROC-AUC.
 
+Función a implementar
+Nombre: clasificar_congestion
+Argumentos:
+
+df (pd.DataFrame): DataFrame con columnas numéricas de features y una columna objetivo binaria. Puede contener valores nulos en las features.
+target_col (str): nombre de la columna objetivo (valores: 0 = normal, 1 = congestión crítica).
+n_splits (int): número de folds para StratifiedKFold. Por defecto 5.
+
+Retorna: dict con las claves:
+
+"precision_media" (float): promedio de precision entre folds.
+"recall_medio" (float): promedio de recall entre folds.
+"f1_medio" (float): promedio de F1-score entre folds.
+"roc_auc_medio" (float): promedio de ROC-AUC entre folds.
+"pesos_clase" (dict): diccionario {0: peso_0, 1: peso_1} con los pesos calculados con compute_class_weight.
+
+
+Ejemplo
+pythonimport pandas as pd
+import numpy as np
+from sklearn.datasets import make_classification
+
+X_raw, y_raw = make_classification(
+    n_samples=800, n_features=5,
+    weights=[0.91, 0.09],
+    random_state=42
+)
+df = pd.DataFrame(X_raw, columns=[
+    'volumen_gb', 'latencia_ms', 'usuarios',
+    'paquetes_perdidos', 'tiempo_activo'
+])
+df.loc[np.random.choice(800, 30, replace=False), 'latencia_ms'] = np.nan
+df['congestion'] = y_raw
+
+resultado = clasificar_congestion(df, 'congestion', n_splits=5)
+
+print(resultado)
+# {
+#   'precision_media': 0.71...,
+#   'recall_medio':    0.65...,
+#   'f1_medio':        0.67...,
+#   'roc_auc_medio':   0.88...,
+#   'pesos_clase':     {0: 0.549..., 1: 5.555...}
+# }
+
+Notas / Restricciones
+
+Usar SimpleImputer(strategy='mean') — ajustar solo sobre datos de entrenamiento en cada fold.
+Usar StandardScaler — ajustar solo sobre datos de entrenamiento en cada fold.
+Calcular pesos con compute_class_weight(class_weight='balanced', classes=np.unique(y), y=y) de sklearn.utils.class_weight sobre todo y antes del loop de folds.
+Usar GradientBoostingClassifier(n_estimators=100, random_state=42, **{"max_depth": 3}) con sample_weight en el .fit() — pasar los pesos correspondientes a cada muestra de entrenamiento en cada fold.
+El sample_weight por muestra se construye mapeando cada etiqueta de entrenamiento a su peso de clase: pesos_muestra = np.where(y_train_fold == 1, peso_1, peso_0).
+Calcular precision, recall, f1 con zero_division=0.
+Calcular ROC-AUC con roc_auc_score usando predict_proba.
+Librerías permitidas: numpy, pandas, sklearn.

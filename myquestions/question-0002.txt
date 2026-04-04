@@ -1,1 +1,48 @@
+Enunciado
+En una empresa de logística, se registran diariamente métricas operativas de sus flotas de vehículos: kilómetros recorridos, consumo de combustible (litros), número de paradas, peso de carga (kg), temperatura promedio de la ruta (°C) y tiempo total de conducción (horas). El equipo de ingeniería sospecha que existen grupos naturales de rutas con características similares, pero no cuenta con etiquetas previas.
+Se requiere implementar una función que reciba la matriz de datos, determine automáticamente el número óptimo de clusters probando valores de K entre 2 y 8, seleccionando el mejor según el Silhouette Score, y retorne tanto las etiquetas asignadas como un resumen estadístico por cluster.
 
+Función a implementar
+Nombre: segmentar_rutas
+Argumentos:
+
+X (np.ndarray): matriz de forma (n_samples, n_features) con las métricas operativas de cada ruta. No contiene valores nulos.
+random_state (int): semilla para reproducibilidad. Por defecto 42.
+
+Retorna: dict con las claves:
+
+"mejor_k" (int): número de clusters con mayor Silhouette Score.
+"mejor_score" (float): Silhouette Score correspondiente al mejor K.
+"etiquetas" (np.ndarray): array de forma (n_samples,) con el cluster asignado a cada ruta según el mejor K.
+"resumen" (pd.DataFrame): DataFrame con la media de cada feature por cluster, donde el índice es el número de cluster (0, 1, ..., mejor_k - 1).
+
+
+Ejemplo
+pythonimport numpy as np
+from sklearn.datasets import make_blobs
+
+X, _ = make_blobs(n_samples=300, n_features=6, centers=4, random_state=42)
+
+resultado = segmentar_rutas(X, random_state=42)
+
+print("Mejor K:",     resultado["mejor_k"])
+print("Mejor score:", round(resultado["mejor_score"], 4))
+print("Etiquetas:",   resultado["etiquetas"][:10])
+print(resultado["resumen"])
+# Mejor K: 4
+# Mejor score: 0.6873
+# Etiquetas: [1 0 2 3 1 0 2 3 1 0]
+#    feature_0  feature_1  ...  feature_5
+# 0   -4.23      2.11      ...   0.98
+# 1    1.87     -3.45      ...  -1.23
+# 2    6.54      0.87      ...   2.34
+# 3   -1.12      5.67      ...  -0.45
+
+Notas / Restricciones
+
+Escalar X con StandardScaler antes de aplicar KMeans (fit sobre todo X).
+Probar k en el rango [2, 3, 4, 5, 6, 7, 8] usando KMeans(n_clusters=k, n_init=10, random_state=random_state).
+Seleccionar el mejor K usando silhouette_score de sklearn.metrics.
+El "resumen" debe construirse con el X original sin escalar, agrupado por las etiquetas del mejor K. Usar pd.DataFrame y operaciones vectorizadas de pandas (sin loops explícitos).
+Si hay empate en Silhouette Score, elegir el K más pequeño.
+Librerías permitidas: numpy, pandas, sklearn.

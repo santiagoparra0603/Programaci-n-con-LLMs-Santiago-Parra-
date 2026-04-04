@@ -1,1 +1,42 @@
-
+Enunciado:
+En un hospital, se recolectan datos clínicos de pacientes que incluyen edad, nivel de glucosa en
+sangre (mg/dL), presión arterial sistólica (mmHg), índice de masa corporal (IMC) y número de
+consultas previas. Sin embargo, los datos suelen contener valores nulos y registros duplicados.
+Se requiere implementar una función que reciba un DataFrame con estos datos clínicos, realice
+una limpieza (eliminar duplicados y filas con valores nulos), y luego segmente a los pacientes
+en grupos de riesgo según las siguientes reglas:
+- "alto": glucosa >= 140 o presion_arterial >= 140
+- "medio": glucosa >= 100 o presion_arterial >= 120 (y no cumple la condición de "alto")
+- "bajo": en cualquier otro caso
+La función debe retornar un nuevo DataFrame limpio con una columna adicional llamada
+"grupo_riesgo" que contenga la categoría asignada, y las filas deben quedar ordenadas
+por edad de forma ascendente, reiniciando el índice.
+Función a implementar:
+- Nombre: segmentar_pacientes
+- Argumentos:
+  - df (pd.DataFrame): DataFrame con columnas ["edad", "glucosa", "presion_arterial", "imc", "consultas_previas"].
+    Puede contener valores nulos y filas duplicadas.
+- Retorna: (pd.DataFrame) DataFrame limpio, sin nulos ni duplicados, con columna adicional
+  "grupo_riesgo" (valores: "alto", "medio", "bajo"), ordenado por edad ascendente y con
+  índice reiniciado (reset_index con drop=True).
+Ejemplo:
+    import pandas as pd
+    df = pd.DataFrame({
+        "edad": [55, 30, 30, 45, None, 60],
+        "glucosa": [150, 85, 85, 110, 90, 130],
+        "presion_arterial": [130, 110, 110, 125, 115, 145],
+        "imc": [28.5, 22.0, 22.0, 26.3, 24.0, 30.1],
+        "consultas_previas": [5, 2, 2, 3, 1, 7]
+    })
+    resultado = segmentar_pacientes(df)
+    print(resultado)
+    #    edad  glucosa  presion_arterial   imc  consultas_previas grupo_riesgo
+    # 0  30.0     85.0             110.0  22.0                2.0         bajo
+    # 1  45.0    110.0             125.0  26.3                3.0        medio
+    # 2  55.0    150.0             130.0  28.5                5.0         alto
+    # 3  60.0    130.0             145.0  30.1                7.0         alto
+Notas/Restricciones:
+- Usar operaciones vectorizadas de pandas (evitar loops explícitos con for).
+- Se recomienda usar np.select o aplicaciones condicionales con .loc para asignar el grupo.
+- El orden de evaluación de condiciones importa: primero evaluar "alto", luego "medio", luego "bajo".
+- Librerías permitidas: pandas, numpy.  por ejemplo esta es una de un compañero del ecxel, utiliza esta misma estructura obviamente adapata a la pregunta que me acabaste de generar

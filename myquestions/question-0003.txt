@@ -1,1 +1,56 @@
+Enunciado
+En un laboratorio de control de calidad industrial, se toman muestras de productos en línea de producción y se miden 5 propiedades físicas: dureza, elasticidad, densidad, rugosidad y conductividad térmica. Cada muestra tiene además una etiqueta continua: resistencia mecánica (variable a predecir). Sin embargo, los ingenieros sospechan que no todas las propiedades contribuyen igual al modelo, y que algunas pueden ser redundantes.
+Se requiere implementar una función que aplique un pipeline completo: impute valores faltantes, escale, reduzca dimensionalidad con PCA reteniendo el 95% de varianza, entrene una regresión Ridge, y evalúe el modelo reportando cuántos componentes principales fueron necesarios y el error de predicción.
 
+Función a implementar
+Nombre: pipeline_pca_ridge
+Argumentos:
+
+X_train (np.ndarray): matriz de entrenamiento de forma (n_train, n_features). Puede contener valores nulos.
+y_train (np.ndarray): vector objetivo de entrenamiento de forma (n_train,).
+X_test (np.ndarray): matriz de prueba de forma (n_test, n_features). Puede contener valores nulos.
+y_test (np.ndarray): vector objetivo de prueba de forma (n_test,).
+alpha (float): parámetro de regularización para Ridge. Por defecto 1.0.
+
+Retorna: dict con las claves:
+
+"n_componentes" (int): número de componentes principales seleccionados automáticamente para retener el 95% de varianza.
+"rmse" (float): error cuadrático medio de la raíz (RMSE) sobre el conjunto de prueba.
+"r2" (float): coeficiente de determinación R² sobre el conjunto de prueba.
+"predicciones" (np.ndarray): array con las predicciones sobre X_test.
+
+
+Ejemplo
+pythonimport numpy as np
+from sklearn.datasets import make_regression
+
+X, y = make_regression(
+    n_samples=300, n_features=5, noise=10.0, random_state=42
+)
+X_train, X_test = X[:240], X[240:]
+y_train, y_test = y[:240], y[240:]
+
+# Inyectar algunos nulos
+X_train[np.random.choice(240, 15, replace=False), 2] = np.nan
+
+resultado = pipeline_pca_ridge(X_train, y_train, X_test, y_test, alpha=2.0)
+
+print("Componentes PCA:", resultado["n_componentes"])
+print("RMSE:           ", round(resultado["rmse"], 4))
+print("R²:             ", round(resultado["r2"], 4))
+print("Predicciones:   ", resultado["predicciones"][:5])
+# Componentes PCA: 3
+# RMSE:            18.4231
+# R²:              0.9712
+# Predicciones:    [ 82.3  -14.7  210.5  -5.3  134.8]
+
+Notas / Restricciones
+
+Usar SimpleImputer(strategy='mean') — ajustar solo sobre X_train, transformar ambos conjuntos.
+Usar StandardScaler — ajustar solo sobre X_train imputado, transformar ambos.
+Usar PCA(n_components=0.95) de sklearn.decomposition — ajustar solo sobre X_train escalado. El atributo n_components_ del objeto PCA entrenado da el número de componentes seleccionados automáticamente.
+Usar Ridge(alpha=alpha) de sklearn.linear_model.
+Calcular RMSE como np.sqrt(mean_squared_error(y_test, predicciones)).
+Calcular R² con r2_score de sklearn.metrics.
+Todo el pipeline debe ajustarse exclusivamente sobre datos de entrenamiento.
+Librerías permitidas: numpy, pandas, sklearn.

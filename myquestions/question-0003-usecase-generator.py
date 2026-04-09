@@ -42,16 +42,17 @@ def pipeline_pca_ridge(
         "predicciones":  predicciones
     }
 
-# CAMBIO DE NOMBRE AQUÍ: de generar_caso_de_uso_preparar_datos -> generar_caso_de_uso_pipeline_pca_ridge
 def generar_caso_de_uso_pipeline_pca_ridge():
+    """
+    Generador que devuelve (input_dict, expected_output).
+    """
     rng = np.random.default_rng(seed=np.random.randint(0, 99999))
 
-    # Parámetros aleatorios del dataset
     n_total       = int(rng.integers(200, 601))
     n_features    = int(rng.integers(4, 11))        
     n_informative = int(rng.integers(2, n_features))
     noise         = float(rng.uniform(5.0, 50.0))
-    alpha         = float(rng.choice([0.1, 0.5, 1.0, 2.0, 5.0, 10.0]))
+    alpha_val     = float(rng.choice([0.1, 0.5, 1.0, 2.0, 5.0, 10.0]))
     random_state  = int(rng.integers(0, 999))
     test_ratio    = float(rng.uniform(0.15, 0.35))
 
@@ -81,24 +82,33 @@ def generar_caso_de_uso_pipeline_pca_ridge():
         null_idx = rng.choice(n_train, size=n_nulls, replace=False)
         X_train[null_idx, col] = np.nan
 
-    # ── INPUT ──────────────────────────────────────────────────────────────────
-    input_args = [X_train, y_train, X_test, y_test, alpha]
+    # --- ESTRUCTURA DE RETORNO PARA EL EVALUADOR ---
+    
+    # 1. Diccionario con los argumentos EXACTOS de la función
+    input_args = {
+        "X_train": X_train,
+        "y_train": y_train,
+        "X_test": X_test,
+        "y_test": y_test,
+        "alpha": alpha_val
+    }
 
-    # ── OUTPUT esperado ────────────────────────────────────────────────────────
+    # 2. Resultado esperado calculado con la función de referencia
     output_caso = pipeline_pca_ridge(
         X_train.copy(), y_train.copy(),
         X_test.copy(),  y_test.copy(),
-        alpha=alpha
+        alpha=alpha_val
     )
 
-    return {
-        "input": input_args,
-        "expected": output_caso
-    }
+    # Retornar como tupla para permitir el desempaquetado del evaluador
+    return input_args, output_caso
 
 # ── Demo local ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    resultado = generar_caso_de_uso_pipeline_pca_ridge()
-    print(f"Componentes PCA seleccionados: {resultado['expected']['n_componentes']}")
-    print(f"RMSE: {resultado['expected']['rmse']:.4f}")
-    print(f"R2: {resultado['expected']['r2']:.4f}")
+    try:
+        args, expected = generar_caso_de_uso_pipeline_pca_ridge()
+        print("✅ Archivo 0003: Formato de retorno validado.")
+        print(f"Componentes PCA: {expected['n_componentes']}")
+        print(f"RMSE: {expected['rmse']:.4f}")
+    except Exception as e:
+        print(f"❌ Error en el formato: {e}")

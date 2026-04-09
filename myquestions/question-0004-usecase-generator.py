@@ -62,8 +62,10 @@ def clasificar_congestion(
         "pesos_clase":     {int(k): float(v) for k, v in peso_map.items()}
     }
 
-# CAMBIO DE NOMBRE: de generar_caso_de_uso_preparar_datos -> generar_caso_de_uso_clasificar_congestion
 def generar_caso_de_uso_clasificar_congestion():
+    """
+    Generador que devuelve (input_dict, expected_output).
+    """
     rng = np.random.default_rng(seed=np.random.randint(0, 99999))
 
     n_samples      = int(rng.integers(400, 1001))
@@ -101,25 +103,27 @@ def generar_caso_de_uso_clasificar_congestion():
 
     df[target_col] = y_raw
 
-    # ── INPUT ──────────────────────────────────────────────────────────────────
+    # --- ESTRUCTURA DE RETORNO PARA EL EVALUADOR ---
+
+    # 1. Diccionario con los argumentos de entrada
     input_args = {
         "df": df.copy(),
         "target_col": target_col,
         "n_splits": n_splits_val
     }
 
-    # ── OUTPUT esperado ────────────────────────────────────────────────────────
-    output_caso = clasificar_congestion(df.copy(), target_col, n_splits=n_splits_val)
+    # 2. Resultado esperado
+    expected_output = clasificar_congestion(df.copy(), target_col, n_splits=n_splits_val)
 
-    # Formato de retorno para el evaluador
-    return {
-        "input": [df.copy(), target_col, n_splits_val],
-        "expected": output_caso
-    }
+    # Retorno como tupla (diccionario, resultado)
+    return input_args, expected_output
 
 # ── Demo local ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    resultado = generar_caso_de_uso_clasificar_congestion()
-    print(f"Pesos de clase calculados: {resultado['expected']['pesos_clase']}")
-    print(f"F1 Medio: {resultado['expected']['f1_medio']:.4f}")
-    print(f"ROC-AUC Medio: {resultado['expected']['roc_auc_medio']:.4f}")
+    try:
+        inp, out = generar_caso_de_uso_clasificar_congestion()
+        print("✅ Archivo 0004: Formato de retorno validado.")
+        print(f"Pesos de clase: {out['pesos_clase']}")
+        print(f"F1 Medio: {out['f1_medio']:.4f}")
+    except Exception as e:
+        print(f"❌ Error: {e}")

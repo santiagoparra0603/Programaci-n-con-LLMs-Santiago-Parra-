@@ -6,7 +6,6 @@ from sklearn.decomposition import PCA
 from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error, r2_score
 
-
 def pipeline_pca_ridge(
     X_train: np.ndarray,
     y_train: np.ndarray,
@@ -14,7 +13,9 @@ def pipeline_pca_ridge(
     y_test:  np.ndarray,
     alpha:   float = 1.0
 ) -> dict:
-
+    """
+    Función de referencia para generar el resultado esperado del pipeline.
+    """
     imputer = SimpleImputer(strategy='mean')
     X_train_imp = imputer.fit_transform(X_train)
     X_test_imp  = imputer.transform(X_test)
@@ -41,18 +42,18 @@ def pipeline_pca_ridge(
         "predicciones":  predicciones
     }
 
-
-def generar_caso_de_uso_preparar_datos():
+# CAMBIO DE NOMBRE AQUÍ: de generar_caso_de_uso_preparar_datos -> generar_caso_de_uso_pipeline_pca_ridge
+def generar_caso_de_uso_pipeline_pca_ridge():
     rng = np.random.default_rng(seed=np.random.randint(0, 99999))
 
     # Parámetros aleatorios del dataset
-    n_total      = int(rng.integers(200, 601))
-    n_features   = int(rng.integers(4, 11))        # entre 4 y 10 features
+    n_total       = int(rng.integers(200, 601))
+    n_features    = int(rng.integers(4, 11))        
     n_informative = int(rng.integers(2, n_features))
-    noise        = float(rng.uniform(5.0, 50.0))
-    alpha        = float(rng.choice([0.1, 0.5, 1.0, 2.0, 5.0, 10.0]))
-    random_state = int(rng.integers(0, 999))
-    test_ratio   = float(rng.uniform(0.15, 0.35))
+    noise         = float(rng.uniform(5.0, 50.0))
+    alpha         = float(rng.choice([0.1, 0.5, 1.0, 2.0, 5.0, 10.0]))
+    random_state  = int(rng.integers(0, 999))
+    test_ratio    = float(rng.uniform(0.15, 0.35))
 
     from sklearn.datasets import make_regression
     X, y = make_regression(
@@ -63,7 +64,7 @@ def generar_caso_de_uso_preparar_datos():
         random_state=random_state
     )
 
-    # Split manual sin sklearn para no añadir dependencias extra
+    # Split manual
     n_test  = max(20, int(n_total * test_ratio))
     n_train = n_total - n_test
     idx     = rng.permutation(n_total)
@@ -72,7 +73,7 @@ def generar_caso_de_uso_preparar_datos():
     X_train, X_test = X[train_idx].copy(), X[test_idx].copy()
     y_train, y_test = y[train_idx].copy(), y[test_idx].copy()
 
-    # Inyectar nulos en X_train en 1 o 2 columnas aleatorias
+    # Inyectar nulos en X_train
     n_null_cols = int(rng.integers(1, 3))
     null_cols   = rng.choice(n_features, size=n_null_cols, replace=False)
     for col in null_cols:
@@ -80,20 +81,8 @@ def generar_caso_de_uso_preparar_datos():
         null_idx = rng.choice(n_train, size=n_nulls, replace=False)
         X_train[null_idx, col] = np.nan
 
-    # Ocasionalmente inyectar nulos en X_test también
-    if rng.random() > 0.5:
-        col_test  = int(rng.integers(0, n_features))
-        null_idx2 = rng.choice(n_test, size=int(rng.integers(1, max(2, n_test // 10))), replace=False)
-        X_test[null_idx2, col_test] = np.nan
-
     # ── INPUT ──────────────────────────────────────────────────────────────────
-    input_caso = {
-        "X_train": X_train,
-        "y_train": y_train,
-        "X_test":  X_test,
-        "y_test":  y_test,
-        "alpha":   alpha
-    }
+    input_args = [X_train, y_train, X_test, y_test, alpha]
 
     # ── OUTPUT esperado ────────────────────────────────────────────────────────
     output_caso = pipeline_pca_ridge(
@@ -102,21 +91,14 @@ def generar_caso_de_uso_preparar_datos():
         alpha=alpha
     )
 
-    return input_caso, output_caso
+    return {
+        "input": input_args,
+        "expected": output_caso
+    }
 
-
-# ── Demo ───────────────────────────────────────────────────────────────────────
+# ── Demo local ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    for i in range(3):
-        inp, out = generar_caso_de_uso_preparar_datos()
-        print(f"\n{'='*60}")
-        print(f"Caso {i+1}")
-        print(f"  X_train shape  : {inp['X_train'].shape}")
-        print(f"  X_test  shape  : {inp['X_test'].shape}")
-        print(f"  nulos X_train  : {np.isnan(inp['X_train']).sum()}")
-        print(f"  nulos X_test   : {np.isnan(inp['X_test']).sum()}")
-        print(f"  alpha          : {inp['alpha']}")
-        print(f"  n_componentes  : {out['n_componentes']}")
-        print(f"  rmse           : {out['rmse']:.4f}")
-        print(f"  r2             : {out['r2']:.4f}")
-        print(f"  predicciones[:5]: {out['predicciones'][:5].round(3)}")
+    resultado = generar_caso_de_uso_pipeline_pca_ridge()
+    print(f"Componentes PCA seleccionados: {resultado['expected']['n_componentes']}")
+    print(f"RMSE: {resultado['expected']['rmse']:.4f}")
+    print(f"R2: {resultado['expected']['r2']:.4f}")

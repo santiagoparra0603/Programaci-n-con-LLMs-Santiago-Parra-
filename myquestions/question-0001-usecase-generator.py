@@ -1,97 +1,63 @@
 import pandas as pd
 import numpy as np
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import StratifiedKFold, cross_val_score
 
-def predecir_desercion(df: pd.DataFrame, target_col: str) -> dict:
-    X = df.drop(columns=[target_col]).values
-    y = df[target_col].values
-
-    imputer = SimpleImputer(strategy='median')
-    X_imp = imputer.fit_transform(X)
-
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X_imp)
-
-    feature_names = df.drop(columns=[target_col]).columns.tolist()
-    clf = RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42)
-
-    skf = StratifiedKFold(n_splits=5)
-    scores = cross_val_score(clf, X_scaled, y, cv=skf, scoring='f1')
-
-    clf.fit(X_scaled, y)
-    importancias = dict(zip(feature_names, clf.feature_importances_))
-
-    return {
-        "f1_medio": float(np.mean(scores)),
-        "f1_std": float(np.std(scores)),
-        "importancias": importancias
-    }
-
-# CAMBIO DE NOMBRE AQUÍ: de generar_caso_de_uso_preparar_datos -> generar_caso_de_uso_predecir_desercion
-def generar_caso_de_uso_predecir_desercion():
-    rng = np.random.default_rng(seed=np.random.randint(0, 99999))
-
-    n_samples = int(rng.integers(200, 601))
-    imbalance   = rng.uniform(0.10, 0.35)          # proporción de clase positiva
-
-    # Parámetros aleatorios del dataset sintético
-    n_informative = int(rng.integers(2, 5))
-    noise_level   = rng.uniform(0.0, 0.3)
-    random_state  = int(rng.integers(0, 999))
-
-    from sklearn.datasets import make_classification
-    X_raw, y_raw = make_classification(
-        n_samples=n_samples,
-        n_features=6,
-        n_informative=n_informative,
-        n_redundant=max(0, 6 - n_informative - 1), # Ajuste para evitar valores negativos
-        n_clusters_per_class=1,
-        weights=[1 - imbalance, imbalance],
-        flip_y=noise_level,
-        random_state=random_state
-    )
-
-    feature_names = [
-        'videos_vistos', 'quizzes_respondidos', 'dias_activos',
-        'foros_participados', 'promedio_nota', 'horas_semanales'
+def segmentar_pacientes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Función de limpieza y segmentación de pacientes.
+    """
+    # 1. Limpieza: eliminar duplicados y nulos
+    df_limpio = df.drop_duplicates().dropna().copy()
+    
+    # 2. Segmentación lógica
+    # alto: glucosa >= 140 o presion_arterial >= 140
+    # medio: glucosa >= 100 o presion_arterial >= 120 (y no es alto)
+    condiciones = [
+        (df_limpio['glucosa'] >= 140) | (df_limpio['presion_arterial'] >= 140),
+        (df_limpio['glucosa'] >= 100) | (df_limpio['presion_arterial'] >= 120)
     ]
-    df = pd.DataFrame(X_raw, columns=feature_names)
+    opciones = ["alto", "medio"]
+    
+    df_limpio['grupo_riesgo'] = np.select(condiciones, opciones, default="bajo")
+    
+    # 3. Ordenar por edad ascendente y resetear índice
+    df_limpio = df_limpio.sort_values(by="edad", ascending=True).reset_index(drop=True)
+    
+    return df_limpio
 
-    # Inyectar nulos aleatorios en 1 o 2 columnas
-    n_null_cols = int(rng.integers(1, 3))
-    null_cols   = rng.choice(feature_names, size=n_null_cols, replace=False)
-    for col in null_cols:
-        null_idx = rng.choice(df.index, size=int(rng.integers(5, 40)), replace=False)
-        df.loc[null_idx, col] = np.nan
-
-    target_col = 'completo_curso'
-    df[target_col] = y_raw
-
-    # ── INPUT ──────────────────────────────────────────────────────────────────
-    input_caso = {
-        "df":         df.copy(),
-        "target_col": target_col
+def generar_caso_de_uso_segmentar_pacientes():
+    """
+    Generador que devuelve (input_dict, expected_output).
+    """
+    rng = np.random.default_rng(seed=42)
+    
+    # Crear datos sucios (con duplicados y nulos)
+    data = {
+        "edad": [55, 30, 30, 45, None, 60, 25, 30],
+        "glucosa": [150, 85, 85, 110, 90, 130, 105, 85],
+        "presion_arterial": [130, 110, 110, 125, 115, 145, 118, 110],
+        "imc": [28.5, 22.0, 22.0, 26.3, 24.0, 30.1, 21.5, 22.0],
+        "consultas_previas": [5, 2, 2, 3, 1, 7, 0, 2]
     }
-
-    # ── OUTPUT esperado (ejecutando la función real) ────────────────────────────
-    output_caso = predecir_desercion(df.copy(), target_col)
-
-    # Retornamos en el formato estándar de diccionario para el evaluador
-    return {
-        "input": [df.copy(), target_col],
-        "expected": output_caso
+    
+    df_input = pd.DataFrame(data)
+    
+    # El primer elemento debe ser un DICCIONARIO con los argumentos de la función
+    input_args = {
+        "df": df_input.copy()
     }
+    
+    # El segundo elemento es el resultado esperado
+    expected_output = segmentar_pacientes(df_input.copy())
+    
+    # Retornar como tupla separada por coma
+    return input_args, expected_output
 
-# ── Demo para pruebas locales ──────────────────────────────────────────────────
 if __name__ == "__main__":
-    for i in range(1):
-        resultado = generar_caso_de_uso_predecir_desercion()
-        df_in = resultado["input"][0]
-        out = resultado["expected"]
-        print(f"\n{'='*55}")
-        print(f"Caso de prueba generado correctamente")
-        print(f"  Registros       : {len(df_in)}")
-        print(f"  F1 Medio        : {out['f1_medio']:.4f}")
+    # Test local
+    try:
+        args, expected = generar_caso_de_uso_segmentar_pacientes()
+        print("✅ Archivo 0001 generado correctamente")
+        print(f"Columnas resultantes: {expected.columns.tolist()}")
+        print(f"Primeros registros:\n{expected.head(2)}")
+    except Exception as e:
+        print(f"❌ Error: {e}")

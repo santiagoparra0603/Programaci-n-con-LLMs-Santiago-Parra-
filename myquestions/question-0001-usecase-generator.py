@@ -30,8 +30,8 @@ def predecir_desercion(df: pd.DataFrame, target_col: str) -> dict:
         "importancias": importancias
     }
 
-
-def generar_caso_de_uso_preparar_datos():
+# CAMBIO DE NOMBRE AQUÍ: de generar_caso_de_uso_preparar_datos -> generar_caso_de_uso_predecir_desercion
+def generar_caso_de_uso_predecir_desercion():
     rng = np.random.default_rng(seed=np.random.randint(0, 99999))
 
     n_samples = int(rng.integers(200, 601))
@@ -47,7 +47,7 @@ def generar_caso_de_uso_preparar_datos():
         n_samples=n_samples,
         n_features=6,
         n_informative=n_informative,
-        n_redundant=6 - n_informative - 1,
+        n_redundant=max(0, 6 - n_informative - 1), # Ajuste para evitar valores negativos
         n_clusters_per_class=1,
         weights=[1 - imbalance, imbalance],
         flip_y=noise_level,
@@ -79,21 +79,19 @@ def generar_caso_de_uso_preparar_datos():
     # ── OUTPUT esperado (ejecutando la función real) ────────────────────────────
     output_caso = predecir_desercion(df.copy(), target_col)
 
-    return input_caso, output_caso
+    # Retornamos en el formato estándar de diccionario para el evaluador
+    return {
+        "input": [df.copy(), target_col],
+        "expected": output_caso
+    }
 
-
-# ── Demo ───────────────────────────────────────────────────────────────────────
+# ── Demo para pruebas locales ──────────────────────────────────────────────────
 if __name__ == "__main__":
-    for i in range(3):
-        inp, out = generar_caso_de_uso_preparar_datos()
-        df_in = inp["df"]
+    for i in range(1):
+        resultado = generar_caso_de_uso_predecir_desercion()
+        df_in = resultado["input"][0]
+        out = resultado["expected"]
         print(f"\n{'='*55}")
-        print(f"Caso {i+1}")
-        print(f"  n_samples       : {len(df_in)}")
-        print(f"  nulos por col   : {df_in.isnull().sum().to_dict()}")
-        print(f"  balance clases  : {df_in['completo_curso'].value_counts().to_dict()}")
-        print(f"  f1_medio        : {out['f1_medio']:.4f}")
-        print(f"  f1_std          : {out['f1_std']:.4f}")
-        print(f"  importancias    :")
-        for feat, imp in out['importancias'].items():
-            print(f"    {feat:<28} {imp:.4f}")
+        print(f"Caso de prueba generado correctamente")
+        print(f"  Registros       : {len(df_in)}")
+        print(f"  F1 Medio        : {out['f1_medio']:.4f}")

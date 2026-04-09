@@ -6,7 +6,7 @@ from sklearn.metrics import silhouette_score
 
 def segmentar_rutas(X: np.ndarray, random_state: int = 42) -> dict:
     """
-    Función de referencia para generar el resultado esperado.
+    Función de referencia que debe resolver el problema de las rutas.
     """
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
@@ -41,11 +41,13 @@ def segmentar_rutas(X: np.ndarray, random_state: int = 42) -> dict:
         "resumen": resumen
     }
 
-# CAMBIO DE NOMBRE AQUÍ: de generar_caso_de_uso_preparar_datos -> generar_caso_de_uso_segmentar_rutas
 def generar_caso_de_uso_segmentar_rutas():
+    """
+    Generador que devuelve (input_dict, expected_output) para el evaluador.
+    """
     rng = np.random.default_rng(seed=np.random.randint(0, 99999))
 
-    # Parámetros aleatorios para diversidad de tests
+    # Parámetros aleatorios
     n_samples   = int(rng.integers(150, 501))
     n_features  = int(rng.integers(3, 7))
     n_centers   = int(rng.integers(2, 6))
@@ -61,29 +63,30 @@ def generar_caso_de_uso_segmentar_rutas():
         random_state=random_state_val
     )
 
-    # Añadir ruido leve
+    # Añadir ruido
     noise = rng.normal(0, rng.uniform(0.1, 0.5), size=X.shape)
     X = X + noise
 
-    # ── INPUT ──────────────────────────────────────────────────────────────────
-    input_caso = {
+    # --- ESTRUCTURA CORRECTA DE RETORNO ---
+    
+    # 1. El primer elemento DEBE ser un diccionario con los argumentos de la función
+    input_args = {
         "X": X.copy(),
         "random_state": random_state_val
     }
 
-    # ── OUTPUT esperado ────────────────────────────────────────────────────────
-    output_caso = segmentar_rutas(X.copy(), random_state=random_state_val)
+    # 2. El segundo elemento es el resultado esperado
+    output_esperado = segmentar_rutas(X.copy(), random_state=random_state_val)
 
-    # Retorno en formato compatible con evaluadores (diccionario con input y expected)
-    return {
-        "input": [X.copy(), random_state_val],
-        "expected": output_caso
-    }
+    # Se retornan por separado para que el evaluador pueda hacer: inp, exp = func()
+    return input_args, output_esperado
 
 # ── Demo local ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    resultado = generar_caso_de_uso_segmentar_rutas()
-    print(f"Mejor K encontrado: {resultado['expected']['mejor_k']}")
-    print(f"Mejor Score: {resultado['expected']['mejor_score']:.4f}")
-    print("\nResumen Estadístico (Primeras filas):")
-    print(resultado['expected']['resumen'].head())
+    try:
+        inp, out = generar_caso_de_uso_segmentar_rutas()
+        print("✅ Formato de retorno correcto para el Archivo 0002")
+        print(f"Tipo de input: {type(inp)}")
+        print(f"Mejor K en este caso: {out['mejor_k']}")
+    except Exception as e:
+        print(f"❌ Error en el formato: {e}")
